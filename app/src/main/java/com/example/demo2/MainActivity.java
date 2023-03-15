@@ -55,6 +55,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 }
             } catch (SecurityException se){
                 se.printStackTrace();
+
+
             }
         }
     }
