@@ -2,61 +2,123 @@ package com.example.demo2;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.annotation.SuppressLint;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothServerSocket;
+import android.bluetooth.BluetoothSocket;
+import android.icu.util.Output;
 import android.os.Bundle;
+import android.os.Message;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ListView;
+import android.widget.TextView;
 import android.widget.Toast;
 
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
 
-    // Bluetooth Connection Attributes;
-    private ListView listView;
-    private ArrayAdapter aAdapter;
-    private BluetoothAdapter bAdapter = BluetoothAdapter.getDefaultAdapter();
-    private HashMap<Integer, BluetoothDevice> deviceHashMaps = new HashMap<>();
+    //获取到蓝牙适配器
+    private BluetoothAdapter mBluetoothAdapter;
+    //用来保存搜索到的设备信息
+    private List<String> bluetoothDevice = new ArrayList<>();
+
+    //ListView组件
+    private ListView lv_Device;
+
+    //ListView的字符数组转换适配器
+    private ArrayAdapter<String> arrayAdapter;
+
+    //UUID,蓝牙建立连接需要的
+    private final UUID MY_UUID = UUID.
+            fromString("00001101-0000-1000-8000-00805F9B34FB");
+
+    //为其链接创建一个名称
+    private final String NAME = "Bluetooth_Socket";
+
+    //选中发送数据的蓝牙设备，全局变量，否则连接在方法执行完就结束了
+    private BluetoothDevice selectDevice;
+
+    //获取选中设备的客户端串口，全局变量，否则连接在方法执行完就结束了
+    private BluetoothSocket clientSocket;
+
+    //获取到想设备写的输出流，全局变量，否则连接在方法结束完就结束了
+    private OutputStream os;
+
+    //服务端利用线程不断接收客户端信息
+    private AcceptThread thread;
+
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        Button btn_bleConnect = (Button) findViewById(R.id.btn_bleConnect);
-        btn_bleConnect.setOnClickListener(this);
+        TextView tv_bleConnect = (TextView) findViewById(R.id.tv_bleConnect);
+
+
+
+        //获取到蓝牙默认的适配器
+        mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+        //获取到ListView组件
+
     }
 
     @Override
     public void onClick(View v) {
-        if(bAdapter==null){
-            Toast.makeText(getApplicationContext(),"Bluetooth Not Supported",Toast.LENGTH_SHORT).show();
-        }
-        else{
+
+    }
+    private class AcceptThread extends Thread{
+        private BluetoothServerSocket serverSocket;//服务端接口
+        private BluetoothSocket socket;//获取到客户端接口
+        private InputStream is;//获取输入流
+        private OutputStream os;//获取输出流
+
+        @SuppressLint("MissingPermission")
+        public AcceptThread(){
             try {
-                Set<BluetoothDevice> pairedDevices = bAdapter.getBondedDevices();
-                ArrayList list = new ArrayList();
+                //通过UUID监听请求，然后获取到对应的服务端接口
+                serverSocket = mBluetoothAdapter
+                        .listenUsingRfcommWithServiceRecord(NAME,MY_UUID);
 
-                if (pairedDevices.size() > 0) {
-                    int count = 0;
-                    for (BluetoothDevice device : pairedDevices) {
-                        count++;
-                        //将获取到的蓝牙设备添加到hash表中，序号以及设备
-                        deviceHashMaps.put(count, device);
-                        list.add("id"+count + " )\t" + device.getName() + " [MAC: " + device.getAddress() + "]\n");
-                    }
-                    listView = (ListView) findViewById(R.id.lv_deviceConnect);
-                    aAdapter = new ArrayAdapter(getApplicationContext(), android.R.layout.simple_list_item_1, list);
-                    listView.setAdapter(aAdapter);
+            }catch (Exception e){
+                e.printStackTrace();
+            }
+        }
+        public void run(){
+            try{
+                //接收其客户端的接口
+                socket = serverSocket.accept();
+                //获取输入流
+                is = socket.getInputStream();
+                //获取到输出流
+                os = socket.getOutputStream();
+
+                //无限循环来接收数据
+                while(true){
+                    //创建一个128字节的缓冲
+                    byte[] buffer = new byte[128];
+                    //每次读取128字节，并保存其读取的角标
+                    int count = is.read(buffer);
+                    //创建Message类，想handler 发送数据
+                    Message msg = new Message();
+
+                    //发送一个String的数据，让他向上转型为obj类型
+
+                    msg.obj = new String(buffer,0,count,'utf-8');
+
+                    //发送数据
+                    handler.sendMessage(msg);
                 }
-            } catch (SecurityException se){
-                se.printStackTrace();
-
-
             }
         }
     }

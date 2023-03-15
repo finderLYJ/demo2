@@ -5,7 +5,23 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
+    android:background="@color/gray"
     tools:context=".ConnectedActivity">
 
+    <ImageButton
+        android:id="@+id/imgbtn_back"
+        android:src="@drawable/back2"
+        android:layout_width="64dp"
+        android:layout_height="64dp"
+        android:layout_marginLeft="10dp"
+        android:scaleType="fitXY"/>
+
+    <TextView
+        android:id="@+id/tv_show"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:text="5"
+        android:textSize="160sp"
+        android:gravity="center" />
 
 </LinearLayout>
